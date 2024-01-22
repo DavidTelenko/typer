@@ -1,5 +1,5 @@
-#include <fmt/core.h>
 #include <fmt/color.h>
+#include <fmt/core.h>
 #include <fmt/ranges.h>
 
 #include <algorithm>
@@ -73,7 +73,9 @@ int main(int argc, char* argv[]) {
         .default_value(25);
 
     program.add_argument("--top", "-t")
-        .help("select n top words from your list (your file can contain 20k words but you only want 200 most frequent to appear in test)")
+        .help(
+            "select n top words from your list (your file can contain 20k "
+            "words but you only want 200 most frequent to appear in test)")
         .scan<'u', uint64_t>()
         .default_value(200);
 
@@ -88,13 +90,12 @@ int main(int argc, char* argv[]) {
 
     program.add_argument("--measure-units", "-m")
         .help("units of measure")
-        .default_value("wpm");
-
+        .default_value("wpm")
+        .choices("wpm", "cpm", "wps", "cps");
 
     try {
         program.parse_args(argc, argv);
-    }
-    catch (const std::exception& err) {
+    } catch (const std::exception& err) {
         fmt::print(fg(fmt::terminal_color::red), "{}\n", err.what());
         std::cout << program;
         return 1;
@@ -107,8 +108,7 @@ int main(int argc, char* argv[]) {
     const uint64_t min_length = program.get<uint64_t>("--min_length");
     const uint64_t max_length = program.get<uint64_t>("--max_length");
     const uint64_t dictionary_size = program.get<uint64_t>("-s");
-
-    const std::filesystem::path dictionary_path("res/20k.txt");
+    const std::filesystem::path dictionary_path(program.get("-m"));
 
     const auto filter_function = [&max_length, &min_length](const auto& word) {
         return (word.size() <= max_length or not max_length) and
@@ -118,19 +118,20 @@ int main(int argc, char* argv[]) {
     auto rng = std::mt19937{std::random_device{}()};
 
     tpr::read_dictionary<Char>(dictionary_path, dictionary_size, &resource)
-        .and_then([&filter_function, &rng, &top, &amount](const auto& dictionary) {
-            auto filtered =                               //
-                dictionary                                //
-                | ranges::views::take(top)                //
-                | ranges::views::filter(filter_function)  //
-                | ranges::views::sample(amount, rng);     //
+        .and_then(
+            [&filter_function, &rng, &top, &amount](const auto& dictionary) {
+                auto filtered =                               //
+                    dictionary                                //
+                    | ranges::views::take(top)                //
+                    | ranges::views::filter(filter_function)  //
+                    | ranges::views::sample(amount, rng);     //
 
-            for (const auto& word : filtered) {
-                fmt::print("{} ", word);
-            }
+                for (const auto& word : filtered) {
+                    fmt::print("{} ", word);
+                }
 
-            return std::make_optional(dictionary);
-        })
+                return std::make_optional(dictionary);
+            })
         .or_else([&dictionary_path, &resource] {
             fmt::print("Error occured: Could not read file \"{}\"",
                        dictionary_path.string());
