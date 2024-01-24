@@ -17,6 +17,7 @@
 #include <range/v3/range.hpp>
 #include <range/v3/view.hpp>
 #include <ranges>
+#include <ratio>
 #include <string>
 #include <vector>
 
@@ -159,7 +160,8 @@ int main(int argc, const char* argv[]) {
 
     tpr::read_dictionary<Char>(dictionary_path, dictionary_size, &resource)
         .and_then([&](const auto& dictionary) {
-            using namespace std::chrono;
+            namespace chr = std::chrono;
+
             auto filtered =                               //
                 dictionary                                //
                 | ranges::views::take(top)                //
@@ -175,12 +177,13 @@ int main(int argc, const char* argv[]) {
 
             Char c;
             std::cin >> c;
-            const auto start_time = high_resolution_clock::now();
+            const auto start_time = chr::high_resolution_clock::now();
             std::getline(std::cin, buffer);
-            const auto end_time = high_resolution_clock::now();
+            const auto end_time = chr::high_resolution_clock::now();
 
             const auto duration =
-                duration_cast<microseconds>(end_time - start_time);
+                chr::duration_cast<chr::microseconds>(end_time - start_time)
+                    .count();
 
             size_t errors = 0;
 
@@ -198,9 +201,8 @@ int main(int argc, const char* argv[]) {
 
             fmt::println("\nErros: {}", errors);
 
-            fmt::print(fg(fmt::terminal_color::yellow),
-                       "You were typing: {} seconds",
-                       duration_cast<milliseconds>(duration));
+            fmt::print(fg(fmt::terminal_color::yellow), "You were typing: {}",
+                       duration);
 
             return std::make_optional(dictionary);
         })
